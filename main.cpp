@@ -165,6 +165,7 @@ public:
 		window->draw(shape);
 	}
 };
+
 void gameover(RenderWindow& window, vector<Snake*>& snake, vector<vector<GridBlock*>>& grid) {
 	for (int i = 0; i < snake.size(); i++) {
 		snake.pop_back();
