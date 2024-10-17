@@ -6,6 +6,7 @@
 
 using namespace std;
 using namespace sf;
+
 bool gamerunner = true;
 enum SNAKE_DIRECTION {UP, DOWN, LEFT, RIGHT, IDLE};
 
@@ -50,15 +51,7 @@ public:
 		shape.setPosition(Vector2f(getPosition_X(), getPosition_Y() - y));
 	}
 
-	void run(RenderWindow& window, Event event) {
-		while (true) {
-			window.clear(Color::White);
-			Render(window);
-			window.display();
-		}
-	}
-
-	void Render(RenderWindow& window) {
+	void render(RenderWindow& window) {
 		window.draw(shape);
 	}
 };
@@ -123,13 +116,6 @@ public:
 	}
 };
 
-void gameover(RenderWindow &window, vector<Snake*> &snake) {
-	for (int i = 0; i < snake.size(); i++) {
-		snake.pop_back();
-	}
-	window.close();
-}
-
 class Score {
 private:
 	Text text;
@@ -158,19 +144,78 @@ public:
 	}
 };
 
+class GridBlock {
+private:
+	RectangleShape shape;
+
+public:
+	GridBlock() {
+		shape.setFillColor(Color::Color(67, 67, 67));
+	}
+
+	void setPosition(float x, float y) {
+		shape.setPosition(Vector2f(x, y));
+	}
+
+	void setSize(int block_size) {
+		shape.setSize(Vector2f(block_size, block_size));
+	}
+
+	void render(RenderWindow* window) {
+		window->draw(shape);
+	}
+};
+void gameover(RenderWindow& window, vector<Snake*>& snake, vector<vector<GridBlock*>>& grid) {
+	for (int i = 0; i < snake.size(); i++) {
+		snake.pop_back();
+	}	
+	for (int i = 0; i < (grid.size()); i++) {
+		for (int j = 0; j < (grid[i].size()); j++) {
+			grid[i].pop_back();
+		}
+	}
+	window.close();
+}
+
+void initializeGrid(int block_size, int spacing_factor, vector<vector<GridBlock*>>& grid, int map_Width, int map_Height,
+					int border_thickness) {
+
+	for (int i = 0; i < (map_Height / (block_size + spacing_factor)); i++) {
+		for (int j = 0; j < (map_Width / (block_size + spacing_factor)); j++) {
+			grid[i].push_back(new GridBlock);
+			grid[i][j]->setPosition((block_size + spacing_factor) * j + border_thickness,
+									(block_size + spacing_factor) * i + border_thickness);
+			grid[i][j]->setSize(block_size);
+		}
+	}
+
+}
+
 int main() {
 	// initializing and declaring
 	srand(time(NULL));
-	RenderWindow window(VideoMode(800, 660), "Snake");
+	int window_Width = 800;
+	int window_Height = 660;
+	int map_Width = 760;
+	int map_Height = 560;
+	int border_Thickness = 20;
+
+	RenderWindow window(VideoMode(window_Width, window_Height), "Snake");
 	Event event;
 
 	vector<Snake*> snake;
 	snake.push_back(new Snake);
 	snake.push_back(new Snake);
+
+	int block_size = 18;
+	int spacing_factor = 2;
+	vector<vector<GridBlock*>> grid((map_Height / (block_size + spacing_factor)));
+
+	initializeGrid(block_size, spacing_factor, grid, map_Width, map_Height, border_Thickness);
+
 	Apple apple;
 	Borders borders;
 
-	SNAKE_DIRECTION SNAKE_DIR = IDLE;
 	int total_score = 0;
 	Score scoreText;
 	Score score;
@@ -186,6 +231,7 @@ int main() {
 	Clock clock;
 
 	bool isPositionChanged = false;
+	SNAKE_DIRECTION SNAKE_DIR = IDLE;
 
 	// Window 
 	window.setFramerateLimit(Framerate);
@@ -196,7 +242,7 @@ int main() {
 		accumulatedTime += dt;
 		while (window.pollEvent(event)) {
 			if (event.type == Event::Closed) {
-				gameover(window, snake);
+				gameover(window, snake, grid);
 			}
 		}
 
@@ -264,12 +310,17 @@ int main() {
 		}
 
 		if (!gamerunner)
-			gameover(window, snake);
+			gameover(window, snake, grid);
 
 		// Draw image
 		window.clear();
+		for (int i = 0; i < grid.size(); i++) {
+			for (int j = 0; j < grid[i].size(); j++) {
+				grid[i][j]->render(&window);
+			}
+		}
 		for (int i = 0; i < snake.size(); i++) {
-			snake[i]->Render(window);
+			snake[i]->render(window);
 		}
 		apple.Render(window);
 		borders.Render(window);
